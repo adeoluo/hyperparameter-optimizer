@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from hyperparameter_optimizer.evaluation import Cell, format_table, run_evaluation
+from hyperparameter_optimizer.objectives import Benchmark, available_benchmarks, load_benchmark
 from hyperparameter_optimizer.samplers import (
     GaussianProcessSampler,
     RandomSampler,
@@ -24,7 +26,9 @@ from hyperparameter_optimizer.trial import CompletedTrial, Trial
 __version__ = "0.1.0"
 
 __all__ = [
+    "Benchmark",
     "Categorical",
+    "Cell",
     "CompletedTrial",
     "GaussianProcessSampler",
     "IntUniform",
@@ -41,4 +45,8 @@ __all__ = [
     "Trial",
     "Uniform",
     "Value",
+    "available_benchmarks",
+    "format_table",
+    "load_benchmark",
+    "run_evaluation",
 ]
