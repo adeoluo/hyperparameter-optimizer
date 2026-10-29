@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from hyperparameter_optimizer.samplers import RandomSampler, Sampler, SobolSampler
+from hyperparameter_optimizer.samplers import (
+    GaussianProcessSampler,
+    RandomSampler,
+    Sampler,
+    SobolSampler,
+    TPESampler,
+)
 from hyperparameter_optimizer.space import (
     Categorical,
     IntUniform,
@@ -20,6 +26,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Categorical",
     "CompletedTrial",
+    "GaussianProcessSampler",
     "IntUniform",
     "LogUniform",
     "Objective",
@@ -30,6 +37,7 @@ __all__ = [
     "SobolSampler",
     "Study",
     "StudyResult",
+    "TPESampler",
     "Trial",
     "Uniform",
     "Value",
