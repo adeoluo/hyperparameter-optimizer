@@ -8,31 +8,47 @@ config:
     primaryBorderColor: "#1E293B"
     primaryTextColor: "#1E293B"
     lineColor: "#64748B"
-    clusterBkg: "#E2E8F0"
+    clusterBkg: "#EEF2FF"
     clusterBorder: "#94A3B8"
 ---
-flowchart LR
+flowchart TB
+    classDef edge     fill:#F59E0B,stroke:#1E293B,color:#1E293B,stroke-width:1px;
     classDef core     fill:#6366F1,stroke:#1E293B,color:#ffffff,stroke-width:1px;
     classDef data     fill:#10B981,stroke:#1E293B,color:#ffffff,stroke-width:1px;
-    classDef external fill:#F59E0B,stroke:#1E293B,color:#1E293B,stroke-width:1px;
-    classDef danger   fill:#EF4444,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef control  fill:#0EA5E9,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef obs      fill:#CBD5E1,stroke:#1E293B,color:#1E293B,stroke-width:1px;
 
-    User([User]):::external
+    Client([Client]):::edge
 
-    subgraph Application["Application Service"]
-        API[API Layer]:::core
-        Core[Core Engine]:::core
-        Evaluation[Evaluation Harness]:::core
+    subgraph Edge["Service layer (stdlib HTTP, stateless)"]
+        direction TB
+        Router["Router<br/>/health | /optimize | /evaluate"]:::core
+        Validate["Validation<br/>known benchmark/sampler, bounds"]:::control
     end
 
-    Cache[(Semantic Cache)]:::data
-    Store[(Datastore / Index)]:::data
-    LLM{{LLM Provider}}:::external
+    subgraph Loop["Study (ask / tell loop)"]
+        direction TB
+        Ask["ask()<br/>propose unit point"]:::core
+        Decode["Search space<br/>decode to configuration"]:::core
+        Eval["Objective<br/>evaluate configuration"]:::core
+        Tell["tell()<br/>record completed trial"]:::core
+    end
 
-    User -->|request| API
-    API --> Core
-    Core -->|lookup| Cache
-    Core -->|retrieve| Store
-    Core -->|completion| LLM
-    Core -.->|traces/metrics| Evaluation
-    Core -->|response| User
+    subgraph Samplers["Samplers (propose next point)"]
+        direction TB
+        Random["Random / Sobol<br/>space-filling baselines"]:::core
+        TPE["TPE<br/>good/bad Parzen densities"]:::core
+        GP["Gaussian process<br/>RBF kernel + Expected Improvement"]:::core
+    end
+
+    History[(Trial history)]:::data
+    Result["Best configuration<br/>+ convergence curve"]:::obs
+
+    Client -->|JSON request| Router --> Validate
+    Validate -->|benchmark + sampler| Ask
+    Ask --> Decode --> Eval --> Tell
+    Tell --> History
+    History -.->|conditions proposals| Samplers
+    Samplers -->|unit point| Ask
+    Tell -->|best so far| Result
+    Result --> Router -->|JSON response| Client
