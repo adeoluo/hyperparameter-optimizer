@@ -20,7 +20,7 @@
 Tuning hyperparameters by hand or by grid search wastes most of the budget on configurations
 that were never going to work. Model-based optimization fixes this: it **learns from the
 trials it has already run** to propose the next one, reaching a good configuration in far
-fewer evaluations. This project builds that idea **from first principles** - the search
+fewer evaluations. This project builds that idea **from scratch** - the search
 space, the samplers, and even the linear algebra behind the Gaussian process - with **zero
 runtime dependencies** and a deterministic, offline test suite.
 

@@ -19,7 +19,7 @@ acquisition, all in pure Python.
 
 - **A library Gaussian process (scikit-learn, GPyTorch).** Faster and more featureful, but a
   large dependency and a black box for a learning-focused reference.
-- **A random-forest surrogate (SMAC-style).** Cheaper on high dimensions but less principled
+- **A random-forest surrogate (SMAC-style).** Cheaper on high dimensions but a less exact probabilistic model
   about uncertainty; the Parzen-estimator sampler already covers the non-GP approach.
 
 ## Consequences
