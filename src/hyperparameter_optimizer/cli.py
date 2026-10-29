@@ -54,6 +54,12 @@ def _cmd_evaluate(args: argparse.Namespace) -> None:
     print(format_table(cells))
 
 
+def _cmd_serve(args: argparse.Namespace) -> None:
+    from hyperparameter_optimizer.service import serve
+
+    serve(host=args.host, port=args.port)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="hyperparameter-optimizer", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -69,10 +75,15 @@ def main(argv: list[str] | None = None) -> None:
     evaluate = sub.add_parser("evaluate", help="compare all samplers across benchmarks")
     evaluate.add_argument("--trials", type=int, default=40)
 
+    serve = sub.add_parser("serve", help="start the HTTP optimization service")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+
     handlers = {
         "benchmarks": _cmd_benchmarks,
         "optimize": _cmd_optimize,
         "evaluate": _cmd_evaluate,
+        "serve": _cmd_serve,
     }
     args = parser.parse_args(argv)
     handlers[args.command](args)

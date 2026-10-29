@@ -1,21 +1,25 @@
 # Threat Model - Hyperparameter Optimizer
 
 ## Assets
-- What's worth protecting (data, keys, model, user trust, budget).
+
+- Integrity of the proposed configurations and the reported regret and convergence.
 
 ## Trust boundaries
-- Where untrusted input crosses into the system (reference the architecture diagram).
 
-## Threats (STRIDE + LLM-specific)
+- **Benchmark names, sampler names, and numeric bounds are untrusted input to the service.**
+  They are validated against allowed values; the objective is a bundled function, never
+  caller-supplied code over the wire.
+
+## Threats and mitigations
 
 | Threat | Vector | Impact | Mitigation |
 |---|---|---|---|
-| Prompt injection | Untrusted content in context / tools | Data exfiltration, unsafe actions | Input/output filtering, tool allow-list, least privilege |
-| Jailbreak | Adversarial user prompt | Policy bypass | System-prompt hardening, output classifier, refusal evaluation |
-| Data exfiltration | Model echoes secrets / PII | Privacy breach | Secret scanning, output redaction, no secrets in context |
-| Excessive cost | Unbounded loops / large inputs | $ blowout | Token/step budgets, rate limits, timeouts |
-| Tool abuse | Agent calls dangerous tool | Destructive action | Approval gates, sandboxing, dry-run |
-| Supply chain | Malicious dependency | Code execution | Pinned dependencies, Dependabot, SBOM |
+| Unbounded compute | Huge trial count | Resource exhaustion | Trials bounded (service caps at 500) |
+| Irreproducible results | Unseeded sampling | Flaky numbers | Deterministic, seeded samplers |
+| Numerical failure | Ill-conditioned kernel matrix | Crash or wrong posterior | Jitter on the Cholesky diagonal |
+| Supply-chain compromise | Malicious dependency | Code execution | Zero runtime dependencies; Dependabot and CodeQL in continuous integration |
 
 ## Residual risk
-- What remains after mitigations and why it's acceptable.
+
+The Gaussian process is cubic in the trial count, so very large budgets are slow; the service
+caps trials and the limit is documented rather than hidden.
