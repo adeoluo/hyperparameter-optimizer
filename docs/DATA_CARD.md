@@ -1,22 +1,17 @@
 # Data Card - Hyperparameter Optimizer
 
-## Sources & provenance
-- Where each dataset came from (links), collection method, dates.
+The project bundles standard synthetic objective functions, not a dataset. There is no
+training data and nothing is downloaded.
 
-## Licensing
-- License of each source and whether usage complies. Redistribution terms.
+## benchmark objectives (`src/hyperparameter_optimizer/objectives.py`)
 
-## Composition
-- Size, format, fields, language(s), modality.
-
-## Preprocessing & filtering
-- Cleaning, dedup, PII handling, filtering rules.
-
-## Contamination checks
-- How you ensured evaluation data is not in training / few-shot context.
-
-## Known biases & gaps
-- Representation gaps, label noise, sampling bias.
+- **Provenance:** the classic black-box optimization test functions - sphere, Branin,
+  Rastrigin, and Ackley - each with its standard domain and published global minimum.
+- **Why these:** they span easy (sphere), moderately deceptive (Branin, Ackley), and
+  pathologically multimodal (Rastrigin), so a sampler's behaviour is measured honestly.
+- **Licensing:** standard mathematical functions, implemented in this repository; MIT.
+- **Known gaps:** all are low-dimensional; they do not represent high-dimensional tuning.
 
 ## Ethical considerations
-- Consent, sensitive content, privacy.
+
+The objectives are mathematical functions with no personal, sensitive, or copyrighted content.
