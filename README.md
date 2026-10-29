@@ -131,6 +131,7 @@ curl localhost:8000/evaluate
 
 `POST /optimize` returns the best value, simple regret, best configuration, and the
 convergence curve. See the [operations guide](docs/OPERATIONS.md), the
+The service also exposes `GET /ready` (readiness) and `GET /metrics` (per-route request, error, and latency metrics in Prometheus text format).
 [scaling and tradeoffs](docs/SCALING.md) document, and the [case study](docs/CASE_STUDY.md)
 on tuning a model under a fixed trial budget. A production-style stress benchmark
 (`uv run python benchmarks/stress.py`) reports throughput and p50/p95/p99 latency.
@@ -176,5 +177,5 @@ on tuning a model under a fixed trial budget. A production-style stress benchmar
 
 ## License
 
-[MIT](LICENSE). Part of a 30-project artificial intelligence engineering portfolio by
+[MIT](LICENSE). Part of an artificial intelligence engineering portfolio by
 [adeoluo](https://github.com/adeoluo).
