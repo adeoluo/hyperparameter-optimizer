@@ -15,6 +15,8 @@ A standard-library HTTP server with **zero runtime dependencies**.
 | Method | Path | Body | Success |
 |---|---|---|---|
 | GET | `/health` | none | status, benchmark names, sampler names |
+| GET | `/ready` | none | readiness of the optimizer |
+| GET | `/metrics` | none | per-route request, error, and latency metrics (Prometheus text) |
 | POST | `/optimize` | `{"benchmark", "sampler"?, "trials"?, "seed"?}` | best value, regret, configuration, convergence |
 | GET | `/evaluate` | none | the sampler-by-benchmark regret table |
 
