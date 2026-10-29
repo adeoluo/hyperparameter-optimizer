@@ -22,7 +22,9 @@ Value = float | int | str
 class Parameter(Protocol):
     """A named hyperparameter that decodes a unit value into a concrete value."""
 
-    name: str
+    @property
+    def name(self) -> str:
+        """The parameter's unique name within its search space."""
 
     def decode(self, unit: float) -> Value:
         """Map ``unit`` in ``[0, 1)`` to a concrete parameter value."""
