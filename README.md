@@ -66,6 +66,25 @@ random search is still far away - for example Branin regret **0.045 vs 1.601**, 
 improvement in the same budget. The highly multimodal Rastrigin function remains hard for
 every method, which is the honest, expected result and is discussed in [limitations](#limitations).
 
+### Scale
+
+`benchmarks/scale.py` runs the TPE sampler through progressively larger trial budgets on the
+multimodal Rastrigin objective and reports wall-clock time, throughput, peak traced memory
+(`tracemalloc`), and simple regret. It exposes the central tension of model-based search: more
+trials lower the regret, but a pure-Python TPE's per-trial cost grows with the accumulated
+history, so throughput falls as the search deepens.
+
+| trials | seconds | trials/sec | peak MiB | simple regret |
+|---:|---:|---:|---:|---:|
+| 50 | 0.17 | 290 | 0.04 | 3.617 |
+| 100 | 0.40 | 250 | 0.05 | 3.617 |
+| 200 | 1.80 | 110 | 0.10 | 1.644 |
+
+Honest caveat: the objective is synthetic, this is a pure-Python from-scratch implementation, and
+it is **not** benchmarked against compiled numerical libraries; wall-clock and throughput were
+measured on a shared development machine and will vary. Reproduce with
+`uv run python benchmarks/scale.py`.
+
 ## The sample-efficiency vs compute tradeoff
 
 From `benchmarks/benchmark.py` on Branin (40 trials):
