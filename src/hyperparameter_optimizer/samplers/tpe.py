@@ -18,6 +18,9 @@ import math
 import random
 from collections.abc import Sequence
 
+import numpy as np
+import numpy.typing as npt
+
 from hyperparameter_optimizer.trial import CompletedTrial
 
 
@@ -43,6 +46,18 @@ class _ParzenDensity:
         kernel /= len(self._means)
         # Mix with a uniform prior so no region has zero density.
         return (1.0 - self._prior_weight) * kernel + self._prior_weight * 1.0
+
+    def pdf_many(self, xs: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """``pdf`` at every point of ``xs`` in one vectorized pass."""
+        if not self._means:
+            return np.ones_like(xs)
+        z = (xs[:, None] - np.asarray(self._means)[None, :]) / self._sigma
+        kernel = np.exp(-0.5 * z * z) / (self._sigma * math.sqrt(2.0 * math.pi))
+        mixed = kernel.sum(axis=1) / len(self._means)
+        result: npt.NDArray[np.float64] = (
+            1.0 - self._prior_weight
+        ) * mixed + self._prior_weight * 1.0
+        return result
 
 
 class TPESampler:
@@ -81,18 +96,23 @@ class TPESampler:
         good = ordered[:split]
         bad = ordered[split:] or ordered[split - 1 :]
 
-        best_point: list[float] = []
-        best_score = float("-inf")
-        for _ in range(self._n_candidates):
-            candidate = [self._rng.random() for _ in range(dimension)]
-            score = 0.0
-            for axis in range(dimension):
-                good_density = _ParzenDensity([t.trial.unit_point[axis] for t in good])
-                bad_density = _ParzenDensity([t.trial.unit_point[axis] for t in bad])
-                good_pdf = good_density.pdf(candidate[axis])
-                bad_pdf = bad_density.pdf(candidate[axis])
-                score += math.log(good_pdf + 1e-12) - math.log(bad_pdf + 1e-12)
-            if score > best_score:
-                best_score = score
-                best_point = candidate
-        return best_point
+        # The densities depend only on the history, so build them once per axis, then
+        # score every candidate on an axis in one vectorized pass.
+        densities = [
+            (
+                _ParzenDensity([t.trial.unit_point[axis] for t in good]),
+                _ParzenDensity([t.trial.unit_point[axis] for t in bad]),
+            )
+            for axis in range(dimension)
+        ]
+        candidates = [
+            [self._rng.random() for _ in range(dimension)] for _ in range(self._n_candidates)
+        ]
+        grid = np.asarray(candidates, dtype=np.float64).reshape(len(candidates), dimension)
+        scores = np.zeros(len(candidates))
+        for axis, (good_density, bad_density) in enumerate(densities):
+            good_pdf = good_density.pdf_many(grid[:, axis])
+            bad_pdf = bad_density.pdf_many(grid[:, axis])
+            scores += np.log(good_pdf + 1e-12) - np.log(bad_pdf + 1e-12)
+        # First maximum wins, as in a strict ``>`` scan over the candidates.
+        return candidates[int(np.argmax(scores))]

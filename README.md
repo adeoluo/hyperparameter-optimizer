@@ -45,8 +45,8 @@ See the [ADRs](docs/adr/) for the key design choices.
 - **TPE** (Tree-structured Parzen Estimator): splits trials into a good and a bad group,
   fits a Parzen-window density to each per dimension, and proposes the candidate maximizing
   the good/bad density ratio (which is monotonic in Expected Improvement).
-- **Gaussian process**: a from-scratch GP regressor (squared-exponential kernel, Cholesky
-  solve) with the **Expected Improvement** acquisition, the canonical Bayesian-optimization
+- **Gaussian process**: a GP regressor written out here (squared-exponential kernel, Cholesky
+  posterior, evaluated with numpy) with the **Expected Improvement** acquisition, the canonical Bayesian-optimization
   method.
 
 All samplers share one `Sampler` protocol and one normalized search space, so continuous,
@@ -56,7 +56,8 @@ log-scaled, integer, and categorical parameters are handled uniformly.
 
 - **space**: the normalized search space and its parameter types.
 - **samplers**: random, Sobol, TPE, and Gaussian-process samplers behind one protocol.
-- **linalg**: a small, from-scratch Cholesky solver for the Gaussian process.
+- **linalg**: a small, from-scratch Cholesky solver; the Gaussian process falls back to it
+  when LAPACK rejects a matrix that is not numerically positive definite.
 - **study**: the ask/tell optimization loop and convergence tracking.
 - **objectives**: standard black-box benchmark functions with known optima.
 - **evaluation**: simple-regret comparison across samplers and benchmarks.
@@ -88,13 +89,14 @@ history, so throughput falls as the search deepens.
 
 | trials | seconds | trials/sec | peak MiB | simple regret |
 |---:|---:|---:|---:|---:|
-| 50 | 0.17 | 290 | 0.04 | 3.617 |
-| 100 | 0.40 | 250 | 0.05 | 3.617 |
-| 200 | 1.80 | 110 | 0.10 | 1.644 |
+| 50 | 0.003 | 15,811 | 0.08 | 3.617 |
+| 100 | 0.007 | 13,692 | 0.15 | 3.617 |
+| 200 | 0.021 | 9,402 | 0.28 | 1.644 |
 
-Honest caveat: the objective is synthetic, this is a from-scratch Python implementation, and
-it is **not** benchmarked against compiled numerical libraries; wall-clock and throughput were
-measured on a shared development machine and will vary. Reproduce with
+TPE now builds each axis's two Parzen densities once per proposal instead of once per candidate
+and axis, and scores all candidates on an axis in one numpy pass. Measured back to back with the
+previous version on this machine, throughput at 200 trials went from 694 to 9,402 trials per
+second (13.5x) with the same regret at every budget. The objective is synthetic. Reproduce with
 `uv run python benchmarks/scale.py`.
 
 ### The sample-efficiency vs compute tradeoff
@@ -105,12 +107,15 @@ From `benchmarks/benchmark.py` on Branin (40 trials):
 |---|---:|---:|
 | random | 0.1 ms | 4.02 |
 | sobol | 0.1 ms | 1.11 |
-| tpe | 14 ms | 0.17 |
-| gp | 139 ms | 0.016 |
+| tpe | 2.1 ms | 0.17 |
+| gp | 6.5 ms | 0.016 |
 
 This is the central tradeoff of Bayesian optimization in one table: the Gaussian process
-spends roughly **a thousand times more compute per trial** to reach roughly **250 times
-lower regret**. When each objective evaluation is expensive (training a model), that trade is
+spends roughly **sixty times more compute** than random search over the run to reach roughly
+**250 times lower regret**. The GP factors its Gram matrix once per proposal and scores all 64
+candidates in one batch, needing only the forward triangular solve for each variance; that took
+it from 147 ms to 6.5 ms for this run (23x) with the same regret, and TPE went from 14.4 ms to
+2.1 ms. When each objective evaluation is expensive (training a model), that trade is
 overwhelmingly worth it; when evaluations are nearly free, cheaper samplers win.
 
 ## Quickstart
@@ -196,8 +201,9 @@ The HTTP service running a TPE search on the sphere function.
 - **A normalized unit cube.** Every sampler works in `[0, 1)^d` and the space decodes
   proposals, so one optimizer handles mixed parameter types.
   ([ADR-0002](docs/adr/0002-normalized-search-space.md))
-- **A from-scratch Gaussian process.** Implementing the kernel and the Cholesky solve
-  directly makes the Bayesian-optimization machinery fully inspectable.
+- **A Gaussian process written out, evaluated with numpy.** The kernel, posterior and
+  acquisition are explicit in `samplers/gp.py`, which keeps the Bayesian-optimization machinery
+  inspectable, while LAPACK does the factorization and every candidate is scored in one batch.
   ([ADR-0003](docs/adr/0003-from-scratch-gaussian-process.md))
 
 ## Testing
