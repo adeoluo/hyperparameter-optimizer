@@ -1,4 +1,4 @@
-"""Tests for the dependency-free HTTP optimization service (pure handler layer)."""
+"""Tests for the standard-library HTTP optimization service (pure handler layer)."""
 
 from __future__ import annotations
 

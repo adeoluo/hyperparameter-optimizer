@@ -6,7 +6,7 @@ proposes the candidate that maximizes **Expected Improvement** over the best val
 seen, the canonical Bayesian-optimization acquisition that balances exploiting
 low-mean regions against exploring high-variance ones.
 
-Everything is pure Python: the kernel, the Cholesky solve, and the acquisition.
+The kernel, the Cholesky solve, and the acquisition are all implemented in this package.
 """
 
 from __future__ import annotations

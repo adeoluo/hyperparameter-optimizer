@@ -5,12 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/adeoluo/hyperparameter-optimizer/actions/workflows/ci.yml"><img alt="Continuous integration" src="https://github.com/adeoluo/hyperparameter-optimizer/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Coverage" src="https://img.shields.io/badge/coverage-93%25-brightgreen">
+  <a href="https://github.com/adeoluo/hyperparameter-optimizer/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/adeoluo/hyperparameter-optimizer/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/adeoluo/hyperparameter-optimizer/releases"><img alt="Release" src="https://img.shields.io/github/v/release/adeoluo/hyperparameter-optimizer"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%20%7C%203.12-blue">
-  <img alt="Type checked" src="https://img.shields.io/badge/mypy-strict-blue">
-  <img alt="Runtime dependencies" src="https://img.shields.io/badge/runtime%20deps-0-brightgreen">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
 ---
@@ -20,14 +18,14 @@
 Tuning hyperparameters by hand or by grid search wastes most of the budget on configurations
 that were never going to work. Model-based optimization fixes this: it **learns from the
 trials it has already run** to propose the next one, reaching a good configuration in far
-fewer evaluations. This project builds that idea **from scratch** - the search
-space, the samplers, and even the linear algebra behind the Gaussian process - with **zero
-runtime dependencies** and a deterministic, offline test suite.
+fewer evaluations. This project builds that idea **from scratch**: the search
+space, the samplers, and the linear algebra behind the Gaussian process, with a
+deterministic, offline test suite.
 
 ## Architecture
 
 <p align="center">
-  <img src="docs/architecture/architecture.svg" alt="System architecture" width="900">
+  <img src="docs/architecture/architecture.svg" alt="Architecture diagram" width="860">
 </p>
 
 A **Study** runs an ask/evaluate/tell loop: a **sampler** proposes a point in a normalized
@@ -35,19 +33,28 @@ unit cube, the **search space** decodes it into a concrete configuration, the ob
 evaluated, and the completed trial conditions the next proposal. See the [ADRs](docs/adr/)
 for the key design choices.
 
-## Samplers
+### Samplers
 
-- **Random** and **Sobol** (a Halton-style low-discrepancy sequence) - space-filling
+- **Random** and **Sobol** (a Halton-style low-discrepancy sequence): space-filling
   baselines; quasi-random covers the space more evenly than independent sampling.
-- **TPE** (Tree-structured Parzen Estimator) - splits trials into a good and a bad group,
+- **TPE** (Tree-structured Parzen Estimator): splits trials into a good and a bad group,
   fits a Parzen-window density to each per dimension, and proposes the candidate maximizing
   the good/bad density ratio (which is monotonic in Expected Improvement).
-- **Gaussian process** - a from-scratch GP regressor (squared-exponential kernel, Cholesky
+- **Gaussian process**: a from-scratch GP regressor (squared-exponential kernel, Cholesky
   solve) with the **Expected Improvement** acquisition, the canonical Bayesian-optimization
   method.
 
 All samplers share one `Sampler` protocol and one normalized search space, so continuous,
 log-scaled, integer, and categorical parameters are handled uniformly.
+
+### Components
+
+- **space**: the normalized search space and its parameter types.
+- **samplers**: random, Sobol, TPE, and Gaussian-process samplers behind one protocol.
+- **linalg**: a small, from-scratch Cholesky solver for the Gaussian process.
+- **study**: the ask/tell optimization loop and convergence tracking.
+- **objectives**: standard black-box benchmark functions with known optima.
+- **evaluation**: simple-regret comparison across samplers and benchmarks.
 
 ## Results
 
@@ -62,7 +69,7 @@ log-scaled, integer, and categorical parameters are handled uniformly.
 | **gp** | **0.011** | **0.045** | **1.127** | 4.630 |
 
 On the smooth objectives the **Gaussian process reaches a near-optimal solution** where
-random search is still far away - for example Branin regret **0.045 vs 1.601**, a **35x**
+random search is still far away; for example Branin regret **0.045 vs 1.601**, a **35x**
 improvement in the same budget. The highly multimodal Rastrigin function remains hard for
 every method, which is the honest, expected result and is discussed in [limitations](#limitations).
 
@@ -71,7 +78,7 @@ every method, which is the honest, expected result and is discussed in [limitati
 `benchmarks/scale.py` runs the TPE sampler through progressively larger trial budgets on the
 multimodal Rastrigin objective and reports wall-clock time, throughput, peak traced memory
 (`tracemalloc`), and simple regret. It exposes the central tension of model-based search: more
-trials lower the regret, but a pure-Python TPE's per-trial cost grows with the accumulated
+trials lower the regret, but the TPE sampler's per-trial cost grows with the accumulated
 history, so throughput falls as the search deepens.
 
 | trials | seconds | trials/sec | peak MiB | simple regret |
@@ -80,12 +87,12 @@ history, so throughput falls as the search deepens.
 | 100 | 0.40 | 250 | 0.05 | 3.617 |
 | 200 | 1.80 | 110 | 0.10 | 1.644 |
 
-Honest caveat: the objective is synthetic, this is a pure-Python from-scratch implementation, and
+Honest caveat: the objective is synthetic, this is a from-scratch Python implementation, and
 it is **not** benchmarked against compiled numerical libraries; wall-clock and throughput were
 measured on a shared development machine and will vary. Reproduce with
 `uv run python benchmarks/scale.py`.
 
-## The sample-efficiency vs compute tradeoff
+### The sample-efficiency vs compute tradeoff
 
 From `benchmarks/benchmark.py` on Branin (40 trials):
 
@@ -136,9 +143,11 @@ trial = study.ask()
 study.tell(trial, objective(trial.configuration))
 ```
 
-## Running the service
+## Usage
 
-A dependency-free HTTP service exposes the optimizer as a production-style JSON API:
+### HTTP service
+
+A standard-library HTTP service exposes the optimizer as a production-style JSON API:
 
 ```bash
 python -m hyperparameter_optimizer serve --port 8000
@@ -149,20 +158,11 @@ curl localhost:8000/evaluate
 ```
 
 `POST /optimize` returns the best value, simple regret, best configuration, and the
-convergence curve. See the [operations guide](docs/OPERATIONS.md), the
-The service also exposes `GET /ready` (readiness) and `GET /metrics` (per-route request, error, and latency metrics in Prometheus text format).
-[scaling and tradeoffs](docs/SCALING.md) document, and the [case study](docs/CASE_STUDY.md)
+convergence curve. The service also exposes `GET /ready` (readiness) and `GET /metrics` (per-route
+request, error, and latency metrics in Prometheus text format). See the
+[operations guide](docs/OPERATIONS.md), the [scaling and tradeoffs](docs/SCALING.md) document, and the [case study](docs/CASE_STUDY.md)
 on tuning a model under a fixed trial budget. A production-style stress benchmark
 (`uv run python benchmarks/stress.py`) reports throughput and p50/p95/p99 latency.
-
-## Components
-
-- **space** - the normalized search space and its parameter types.
-- **samplers** - random, Sobol, TPE, and Gaussian-process samplers behind one protocol.
-- **linalg** - a dependency-free Cholesky solver for the Gaussian process.
-- **study** - the ask/tell optimization loop and convergence tracking.
-- **objectives** - standard black-box benchmark functions with known optima.
-- **evaluation** - simple-regret comparison across samplers and benchmarks.
 
 ## Design decisions
 
@@ -170,8 +170,23 @@ on tuning a model under a fixed trial budget. A production-style stress benchmar
   proposals, so one optimizer handles mixed parameter types.
   ([ADR-0002](docs/adr/0002-normalized-search-space.md))
 - **A from-scratch Gaussian process.** Implementing the kernel and the Cholesky solve
-  directly keeps the project dependency-free and makes the Bayesian-optimization machinery
-  fully inspectable. ([ADR-0003](docs/adr/0003-from-scratch-gaussian-process.md))
+  directly makes the Bayesian-optimization machinery fully inspectable.
+  ([ADR-0003](docs/adr/0003-from-scratch-gaussian-process.md))
+
+## Testing
+
+```bash
+make test        # uv run pytest
+make coverage    # pytest with an 80% coverage gate, as in CI
+make lint type   # ruff format check, ruff lint, mypy
+```
+
+- `tests/test_core.py`: parameter encode and decode round trips (uniform, log-uniform, integer, categorical), search-space validation, Sobol evenness against random sampling, and the ask/tell study loop.
+- `tests/test_samplers.py`: the Cholesky solver, TPE and the Gaussian process beating random search on Branin, sampler determinism under a seed, parameter validation, and the random fallback before startup.
+- `tests/test_evaluation.py`: benchmark functions at their known optima, model-based samplers beating random on average, report formatting, and the command-line interface.
+- `tests/test_service.py`: the HTTP handler layer, including health, readiness, metrics, `/optimize`, `/evaluate`, input validation, and unknown routes.
+
+CI runs ruff format, ruff lint, mypy, and pytest with the coverage gate on Python 3.11 and 3.12, then builds the package and the Docker image.
 
 ## Responsible AI
 
@@ -196,5 +211,4 @@ on tuning a model under a fixed trial budget. A production-style stress benchmar
 
 ## License
 
-[MIT](LICENSE). Part of an artificial intelligence engineering portfolio by
-[adeoluo](https://github.com/adeoluo).
+Released under the [MIT License](LICENSE).

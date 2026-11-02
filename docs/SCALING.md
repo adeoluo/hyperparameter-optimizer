@@ -31,7 +31,7 @@ nothing.
   is cheaper, scales better, and handles conditional spaces, at some loss of sample efficiency.
   Both are offered behind one protocol.
 - **Fixed length scale vs marginal-likelihood fitting.** A fixed length scale keeps the GP
-  simple and dependency-free at some loss of adaptivity; fitting it would help but adds an
+  simple and predictable at some loss of adaptivity; fitting it would help but adds an
   inner optimization. Documented as a roadmap item.
 - **Sequential vs parallel proposals.** Sequential proposals use every observation but serialize
   evaluations. Constant-liar batching trades a little information for parallelism when the

@@ -6,14 +6,15 @@
 ## Context
 
 Bayesian optimization needs a surrogate with calibrated uncertainty. A Gaussian process is
-the standard choice, but importing one would add a heavy dependency and hide the machinery
-that is the point of the project.
+the standard choice, but importing one would hide the machinery that is the point of the
+project.
 
 ## Decision
 
 Implement the Gaussian process directly: a squared-exponential kernel, a Cholesky
 factorization and triangular solves for the posterior, and the Expected Improvement
-acquisition, all in pure Python.
+acquisition, all implemented in the package without a numerical library, so each step can be
+read and tested on its own.
 
 ## Alternatives considered
 
@@ -24,7 +25,7 @@ acquisition, all in pure Python.
 
 ## Consequences
 
-- The project stays dependency-free and the Bayesian-optimization math is fully inspectable.
+- The Bayesian-optimization math is fully inspectable.
 - The naive Cholesky is cubic in the number of trials, which is fine for hyperparameter
   budgets (tens to low hundreds of trials) and documented as a limit.
 - A fixed length scale is used; marginal-likelihood fitting is left as a roadmap item.

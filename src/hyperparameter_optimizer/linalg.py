@@ -1,7 +1,7 @@
-"""A tiny, dependency-free linear-algebra kernel for the Gaussian process.
+"""A tiny, from-scratch linear-algebra kernel for the Gaussian process.
 
 Only what the GP needs: Cholesky factorization of a symmetric positive-definite
-matrix and triangular solves. Pure Python lists of lists; sizes are the number of
+matrix and triangular solves. Matrices are lists of lists; sizes are the number of
 trials, which stays small for hyperparameter search.
 """
 

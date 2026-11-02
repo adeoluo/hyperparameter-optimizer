@@ -6,7 +6,7 @@ wall-clock time, throughput in trials per second, the peak traced memory, and th
 simple regret reached (best value found minus the known global optimum). It
 complements ``benchmark.py`` (a fixed 40-trial comparison) by exposing the central
 scaling tension of model-based search: more trials lower the regret, but the
-per-trial cost of a pure-Python TPE grows with the accumulated history, so
+per-trial cost of the TPE sampler grows with the accumulated history, so
 throughput falls as the search deepens.
 
 Timing and memory are captured in separate phases on purpose. ``tracemalloc``
@@ -67,7 +67,7 @@ def measure(benchmark: Benchmark, trials: int, *, seed: int = _SEED) -> ScalePoi
 
 
 def main() -> None:
-    print("Synthetic Rastrigin objective; a pure-Python, from-scratch TPE sampler.")
+    print("Synthetic Rastrigin objective; a from-scratch Python TPE sampler.")
     print("Wall-clock is not competitive with compiled numerical libraries.")
     print("Regret is the best value found minus the known global optimum.\n")
 

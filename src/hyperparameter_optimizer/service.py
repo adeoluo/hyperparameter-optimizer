@@ -1,4 +1,4 @@
-"""A dependency-free HTTP service exposing the optimizer.
+"""A standard-library HTTP service exposing the optimizer.
 
 The service optimizes a chosen benchmark with a chosen sampler and reports the
 best configuration and simple regret, or runs the full sampler-versus-benchmark

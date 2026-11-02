@@ -17,7 +17,7 @@
 | Unbounded compute | Huge trial count | Resource exhaustion | Trials bounded (service caps at 500) |
 | Irreproducible results | Unseeded sampling | Flaky numbers | Deterministic, seeded samplers |
 | Numerical failure | Ill-conditioned kernel matrix | Crash or wrong posterior | Jitter on the Cholesky diagonal |
-| Supply-chain compromise | Malicious dependency | Code execution | Zero runtime dependencies; Dependabot and CodeQL in continuous integration |
+| Supply-chain compromise | Malicious dependency | Code execution | No third-party runtime packages; Dependabot and CodeQL in continuous integration |
 
 ## Residual risk
 
