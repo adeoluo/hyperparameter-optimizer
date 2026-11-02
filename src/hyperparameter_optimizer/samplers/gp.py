@@ -72,7 +72,7 @@ class GaussianProcessSampler:
 
     def _factor(self, gram: Array) -> Array:
         try:
-            lower: Array = np.linalg.cholesky(gram)
+            lower: Array = np.asarray(np.linalg.cholesky(gram), dtype=np.float64)
         except np.linalg.LinAlgError:
             # Not numerically positive definite: fall back to the factorization that
             # clamps non-positive pivots.
