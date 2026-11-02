@@ -29,3 +29,11 @@ read and tested on its own.
 - The naive Cholesky is cubic in the number of trials, which is fine for hyperparameter
   budgets (tens to low hundreds of trials) and documented as a limit.
 - A fixed length scale is used; marginal-likelihood fitting is left as a roadmap item.
+
+## Update: numpy for the numerics
+
+The GP now evaluates the kernel matrix, the Cholesky factorization (LAPACK) and all candidates'
+posteriors with numpy, keeping the from-scratch factorization as the fallback for matrices that
+are not numerically positive definite. A 40-trial Branin run went from 147 ms to 6.5 ms with the
+same regret. The math is unchanged; results agree with the pure-Python version up to
+floating-point rounding.

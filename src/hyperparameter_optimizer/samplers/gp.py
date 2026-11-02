@@ -6,7 +6,13 @@ proposes the candidate that maximizes **Expected Improvement** over the best val
 seen, the canonical Bayesian-optimization acquisition that balances exploiting
 low-mean regions against exploring high-variance ones.
 
-The kernel, the Cholesky solve, and the acquisition are all implemented in this package.
+The kernel matrix, the posterior and the acquisition are written out here and evaluated
+with numpy: the Gram matrix is factored once per proposal (LAPACK Cholesky, with the same
+jitter fallback as :func:`hyperparameter_optimizer.linalg.cholesky`), and every candidate is
+scored in one batch. The posterior variance needs only the forward solve ``v = L^-1 k*``, since
+``k*^T K^-1 k* = |v|^2``. Candidates are drawn in the same order from the same seeded
+generator as before, so proposals match the earlier pure-Python sampler up to floating-point
+rounding.
 """
 
 from __future__ import annotations
@@ -15,8 +21,13 @@ import math
 import random
 from collections.abc import Sequence
 
-from hyperparameter_optimizer.linalg import cholesky, cholesky_solve
+import numpy as np
+import numpy.typing as npt
+
+from hyperparameter_optimizer.linalg import cholesky
 from hyperparameter_optimizer.trial import CompletedTrial
+
+Array = npt.NDArray[np.float64]
 
 
 def _standard_normal_cdf(x: float) -> float:
@@ -53,56 +64,51 @@ class GaussianProcessSampler:
         self._n_candidates = n_candidates
         self._rng = random.Random(seed)
 
-    def _kernel(self, a: Sequence[float], b: Sequence[float]) -> float:
-        squared = sum((ai - bi) ** 2 for ai, bi in zip(a, b, strict=True))
-        return self._signal_variance * math.exp(-0.5 * squared / self._length_scale**2)
+    def _kernel(self, a: Array, b: Array) -> Array:
+        """RBF kernel between every row of ``a`` and every row of ``b``."""
+        squared = ((a[:, None, :] - b[None, :, :]) ** 2).sum(axis=-1)
+        result: Array = self._signal_variance * np.exp(-0.5 * squared / self._length_scale**2)
+        return result
+
+    def _factor(self, gram: Array) -> Array:
+        try:
+            lower: Array = np.asarray(np.linalg.cholesky(gram), dtype=np.float64)
+        except np.linalg.LinAlgError:
+            # Not numerically positive definite: fall back to the factorization that
+            # clamps non-positive pivots.
+            lower = np.asarray(cholesky(gram.tolist()), dtype=np.float64)
+        return lower
 
     def sample(self, dimension: int, history: Sequence[CompletedTrial]) -> list[float]:
         if len(history) < self._n_startup:
             return [self._rng.random() for _ in range(dimension)]
 
-        points = [list(trial.trial.unit_point) for trial in history]
+        points = np.asarray([trial.trial.unit_point for trial in history], dtype=np.float64)
         raw_values = [trial.value for trial in history]
         mean_value = sum(raw_values) / len(raw_values)
-        targets = [value - mean_value for value in raw_values]
+        targets = np.asarray([value - mean_value for value in raw_values], dtype=np.float64)
 
-        size = len(points)
-        gram = [
-            [
-                self._kernel(points[i], points[j]) + (self._noise if i == j else 0.0)
-                for j in range(size)
-            ]
-            for i in range(size)
-        ]
-        lower = cholesky(gram)
-        alpha = cholesky_solve(lower, targets)
+        gram = self._kernel(points, points) + self._noise * np.eye(len(points))
+        lower = self._factor(gram)
+        alpha = np.linalg.solve(lower.T, np.linalg.solve(lower, targets))
         best = min(raw_values)
 
-        best_point: list[float] = []
-        best_acquisition = float("-inf")
-        for _ in range(self._n_candidates):
-            candidate = [self._rng.random() for _ in range(dimension)]
-            acquisition = self._expected_improvement(
-                candidate, points, lower, alpha, mean_value, best
-            )
-            if acquisition > best_acquisition:
-                best_acquisition = acquisition
-                best_point = candidate
-        return best_point
+        candidates = [
+            [self._rng.random() for _ in range(dimension)] for _ in range(self._n_candidates)
+        ]
+        k_star = self._kernel(np.asarray(candidates, dtype=np.float64), points)
+        means = mean_value + k_star @ alpha
+        v = np.linalg.solve(lower, k_star.T)
+        variances = self._signal_variance - (v * v).sum(axis=0)
+        acquisition = [
+            self._expected_improvement(float(mean), float(variance), best)
+            for mean, variance in zip(means, variances, strict=True)
+        ]
+        # First maximum wins, as in a strict ``>`` scan.
+        return candidates[int(np.argmax(acquisition))]
 
-    def _expected_improvement(
-        self,
-        candidate: Sequence[float],
-        points: Sequence[Sequence[float]],
-        lower: list[list[float]],
-        alpha: Sequence[float],
-        mean_value: float,
-        best: float,
-    ) -> float:
-        k_star = [self._kernel(candidate, point) for point in points]
-        mean = mean_value + sum(k_star[i] * alpha[i] for i in range(len(points)))
-        v = cholesky_solve(lower, k_star)
-        variance = self._signal_variance - sum(k_star[i] * v[i] for i in range(len(points)))
+    @staticmethod
+    def _expected_improvement(mean: float, variance: float, best: float) -> float:
         sigma = math.sqrt(max(variance, 1e-12))
         # Expected improvement for minimization over the incumbent ``best``.
         improvement = best - mean
