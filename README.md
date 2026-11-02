@@ -169,6 +169,22 @@ request, error, and latency metrics in Prometheus text format). See the
 on tuning a model under a fixed trial budget. A production-style stress benchmark
 (`uv run python benchmarks/stress.py`) reports throughput and p50/p95/p99 latency.
 
+### Demos
+
+Recorded from real runs with [vhs](https://github.com/charmbracelet/vhs); each tape is in `docs/demo/`.
+
+Bayesian optimization of the Branin function with a Gaussian process.
+
+<p align="center">
+  <img src="docs/demo/optimize.gif" alt="Bayesian optimization of the Branin function with a Gaussian process" width="860">
+</p>
+
+Samplers compared on the benchmark functions.
+
+<p align="center">
+  <img src="docs/demo/evaluate.gif" alt="Samplers compared on the benchmark functions" width="860">
+</p>
+
 ## Design decisions
 
 - **A normalized unit cube.** Every sampler works in `[0, 1)^d` and the space decodes
