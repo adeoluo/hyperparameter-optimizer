@@ -28,10 +28,15 @@ deterministic, offline test suite.
   <img src="docs/architecture/architecture.svg" alt="Architecture diagram" width="860">
 </p>
 
-A **Study** runs an ask/evaluate/tell loop: a **sampler** proposes a point in a normalized
-unit cube, the **search space** decodes it into a concrete configuration, the objective is
-evaluated, and the completed trial conditions the next proposal. See the [ADRs](docs/adr/)
-for the key design choices.
+<sub>Legend: amber = entry points and external systems, indigo = core logic, green = data and state, blue = validation and control, grey = observability and outputs.</sub>
+
+A **Study** runs an ask/evaluate/tell loop, started from the CLI or a validated `/optimize`
+request: a **sampler** proposes a point in a normalized unit cube, the **search space**
+decodes it into a concrete configuration, the benchmark objective is evaluated, and the
+completed trial joins the history that conditions the next TPE or Gaussian-process proposal.
+The best trial and convergence curve are returned, the evaluation compares simple regret
+across samplers and benchmarks, and every route records latency and errors for `/metrics`.
+See the [ADRs](docs/adr/) for the key design choices.
 
 ### Samplers
 
