@@ -185,6 +185,12 @@ Samplers compared on the benchmark functions.
   <img src="docs/demo/evaluate.gif" alt="Samplers compared on the benchmark functions" width="860">
 </p>
 
+The HTTP service running a TPE search on the sphere function.
+
+<p align="center">
+  <img src="docs/demo/http.gif" alt="The HTTP service running a TPE search on the sphere function" width="860">
+</p>
+
 ## Design decisions
 
 - **A normalized unit cube.** Every sampler works in `[0, 1)^d` and the space decodes
