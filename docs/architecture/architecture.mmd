@@ -5,61 +5,43 @@ flowchart LR
     classDef control  fill:#0EA5E9,stroke:#1E293B,color:#ffffff,stroke-width:1px;
     classDef obs      fill:#CBD5E1,stroke:#1E293B,color:#1E293B,stroke-width:1px;
 
-    User([CLI user]):::edge
-    Client([HTTP client]):::edge
-
-    subgraph Interfaces["Interfaces (CLI and stdlib HTTP)"]
+    subgraph Interfaces["Interfaces"]
         direction TB
-        CLI["cli.py<br/>benchmarks | optimize | evaluate | serve"]:::edge
-        Router["service.py router<br/>/health /ready /optimize /evaluate /metrics"]:::core
-        Validate["Request validation<br/>known benchmark and sampler, trials 1 to 500"]:::control
+        Users([Users and clients]):::edge
+        CLI["CLI<br/>optimize, evaluate"]:::edge
+        Router["HTTP service<br/>/optimize /metrics"]:::core
+        Validate["Validation<br/>trials 1 to 500"]:::control
+        Users --> CLI ~~~ Router --> Validate
     end
 
-    subgraph Loop["Study (ask, evaluate, tell)"]
+    subgraph Study["Study loop (ask, tell)"]
         direction TB
-        Ask["Study.ask<br/>request a unit-cube point"]:::core
-        Space["SearchSpace<br/>decode uniform, log, int, categorical"]:::core
-        Objective["Benchmark objective<br/>sphere, Branin, Rastrigin, Ackley"]:::core
-        Tell["Study.tell<br/>record the completed trial"]:::core
+        Ask["Study.ask<br/>unit-cube point"]:::core
+        Space["Search space<br/>decode configuration"]:::core
+        Objective["Benchmark objective<br/>Branin, Ackley, ..."]:::core
+        Tell["Study.tell<br/>record the trial"]:::core
+        History[("Trial history<br/>configs and values")]:::data
+        Ask --> Space --> Objective --> Tell --> History
     end
 
-    subgraph Samplers["Samplers (one Sampler protocol)"]
+    subgraph Samplers["Samplers"]
         direction TB
-        Random["Random and Sobol<br/>space-filling baselines"]:::core
-        TPE["TPE<br/>good and bad Parzen densities"]:::core
-        GP["Gaussian process<br/>RBF kernel, Expected Improvement"]:::core
-        Linalg["linalg.py<br/>Cholesky solve"]:::core
-    end
-
-    subgraph State["Data and state (in memory)"]
-        direction TB
-        History[("Trial history<br/>configurations and values")]:::data
-        Benchmarks[("Benchmark registry<br/>bounds and known optima")]:::data
+        Random["Random and Sobol<br/>space-filling"]:::core
+        TPE["TPE<br/>Parzen density ratio"]:::core
+        GP["Gaussian process<br/>Expected Improvement"]:::core
+        Linalg["Cholesky solve<br/>linalg.py"]:::core
+        Random ~~~ TPE ~~~ GP --> Linalg
     end
 
     subgraph Obs["Evaluation and observability"]
         direction TB
-        Result["Best configuration<br/>regret and convergence curve"]:::obs
-        Regret["evaluation.py<br/>simple regret over 3 seeds"]:::obs
-        Metrics["ServiceMetrics<br/>Prometheus text"]:::obs
+        Result["Best configuration<br/>convergence curve"]:::obs
+        Regret["Simple regret<br/>over 3 seeds"]:::obs
+        Metrics["Metrics<br/>Prometheus text"]:::obs
+        Result --> Regret ~~~ Metrics
     end
 
-    User -->|arguments| CLI
-    Client -->|JSON request| Router
-    Router -->|POST /optimize| Validate
-    Validate -->|benchmark, sampler, trials, seed| Ask
-    CLI -->|benchmark and sampler| Ask
-    Ask -->|unit point| Space
-    Space -->|configuration| Objective
-    Objective -->|value| Tell
-    Tell -->|append| History
-    History -.->|past trials| TPE
-    History -.->|past trials| GP
-    GP --> Linalg
-    Random -->|proposal| Ask
-    TPE -->|proposal| Ask
-    GP -->|proposal| Ask
-    Benchmarks -.->|space and optimum| Objective
-    History -->|best so far| Result
-    Result -->|per sampler and benchmark| Regret
-    Router -.->|route latency and errors| Metrics
+    Interfaces -->|benchmark, sampler| Study
+    Study -.->|trial history| Samplers
+    Samplers -->|proposals| Study
+    Study -->|best so far| Obs
