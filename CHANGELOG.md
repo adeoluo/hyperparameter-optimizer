@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The file is generated
 from Conventional Commits by [git-cliff](https://git-cliff.org) when a release is cut
 with `make cut-release`.
 
-## Unreleased
+## [0.1.0] 2026-11-03
 
 ### Features
 
@@ -14,6 +14,10 @@ with `make cut-release`.
 - Add HTTP service, benchmarks, and full documentation
 - Add production observability (metrics and readiness) and reword footer
 
+### Performance
+
+- Batched numpy GP and TPE candidate scoring (#3)
+
 ### Documentation
 
 - Use plain, factual wording (#12)
@@ -22,6 +26,7 @@ with `make cut-release`.
 - Compact horizontal architecture diagram
 - Recorded demos of more commands, with their vhs tapes (#1)
 - Recorded demos of the HTTP service and more commands (#2)
+- Describe the supply chain accurately (#4)
 
 ### Build and CI
 
