@@ -35,5 +35,5 @@ read and tested on its own.
 The GP now evaluates the kernel matrix, the Cholesky factorization (LAPACK) and all candidates'
 posteriors with numpy, keeping the from-scratch factorization as the fallback for matrices that
 are not numerically positive definite. A 40-trial Branin run went from 147 ms to 6.5 ms with the
-same regret. The math is unchanged; results agree with the pure-Python version up to
+same regret. The math is unchanged; results agree with the Python reference implementation up to
 floating-point rounding.
